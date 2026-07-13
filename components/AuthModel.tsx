@@ -8,7 +8,7 @@ const AuthModal = () => {
       isOpen
       onChange={() => {}}
     >
-      Auth modal children!
+      Auth modal children!!
     </Modal>
   );
 }
