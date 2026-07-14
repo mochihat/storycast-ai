@@ -12,7 +12,7 @@ import useOnPlay from "@/hooks/useOnPlay";
 // Đã xóa import useSubscribeModal
 
 interface LibraryProps {
-  songs: Song[];
+  songs?: Song[];
 }
 
 const Library: React.FC<LibraryProps> = ({ songs = [] }) => { // Thêm = [] để chống lỗi map undefined
