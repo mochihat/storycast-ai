@@ -1,42 +1,57 @@
 "use client";
-
-import { TbPlaylist } from "react-icons/tb"; // Sửa lại chữ P viết hoa
+import React from "react";
+import { TbPlaylist } from "react-icons/tb";
 import { AiOutlinePlus } from "react-icons/ai";
 
-const Library = () => {
-    const onClick = () => {
-        // Handle click event here
-    };
+import useAuthModal from "@/hooks/useAuthModal";
+import { useUser } from "@/hooks/useUser";
+import useUploadModal from "@/hooks/useUploadModal";
+import { Song } from "@/types";
+import MediaItem from "./MediaItem";
+import useOnPlay from "@/hooks/useOnPlay";
+// Đã xóa import useSubscribeModal
 
+interface LibraryProps {
+  songs: Song[];
+}
+
+const Library: React.FC<LibraryProps> = ({ songs = [] }) => { // Thêm = [] để chống lỗi map undefined
+  const authModal = useAuthModal();
+  const uploadModal = useUploadModal();
+  const { user } = useUser(); // Đã xóa subscription
+
+  const onPlay = useOnPlay(songs);
+
+  const onClick = () => {
+    if (!user) {
+      return authModal.onOpen();
+    }
+    
+    // Đã xóa phần kiểm tra if (!subscription) { return subscribeModal.onOpen() }
+    
+    return uploadModal.onOpen();
+  };
+  
   return (
     <div className="flex flex-col">
       <div className="flex items-center justify-between px-5 pt-4">
-            <div className="inline-flex items-center gap-x-2">
-                {/* Thêm size cho icon để nó hiển thị rõ ràng */}
-                <TbPlaylist className="text-neutral-400" size={26} />
-                <p className="text-neutral-400 font-medium text-md">
-                    Library
-                </p>
-            </div>
-            <AiOutlinePlus
-                onClick={onClick}
-                className="text-neutral-400 hover:text-white cursor-pointer transition"
-                size={20}
-            />
+        <div className="inline-flex items-center gap-x-2">
+          <TbPlaylist size={26} className="text-neutral-400" />
+          <p className="text-neutral-400 font-medium text-base">Your Library</p>
+        </div>
+        <AiOutlinePlus
+          onClick={onClick}
+          size={20}
+          className="text-neutral-400 cursor-pointer hover:text-white transition"
+        />
       </div>
-      <div
-        className="
-            flex 
-            flex-col
-            gap-y-2
-            mt-4
-            px-3
-        "
-      >
-        List of Stories
+      <div className="flex flex-col gap-y-2 mt-4 px-3">
+        {songs.map((item) => (
+          <MediaItem onClick={(id: string) => onPlay(id)} key={item.id} data={item} />
+        ))}
       </div>
     </div>
   );
-}
+};
 
 export default Library;

@@ -1,11 +1,14 @@
 "use client";
 
-import AuthModal from "@/components/AuthModal";
 import { useEffect, useState } from "react";
+
+import AuthModal from "@/components/AuthModal";
+import UploadModal from "@/components/UploadModal";
 
 const ModalProvider = () => {
   const [isMounted, setIsMounted] = useState(false);
 
+  // Ngăn lỗi Hydration: Chỉ render các modal khi đã ở phía client (trình duyệt)
   useEffect(() => {
     setIsMounted(true);
   }, []);
@@ -17,8 +20,9 @@ const ModalProvider = () => {
   return (
     <>
       <AuthModal />
+      <UploadModal />
     </>
   );
-};
+}
 
 export default ModalProvider;

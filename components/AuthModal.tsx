@@ -41,10 +41,9 @@ const AuthModal = () => {
       isOpen={isOpen}
       onChange={onChange}
     >
-      {/* this Auth comp from supabase/auth-ui-react, which has git, google login by default */}
       <Auth
         supabaseClient={supabaseClient}
-        providers={["github", "google", "facebook"]}
+        providers={[]} // Đã để mảng rỗng [] để xóa nút GitHub và Facebook
         magicLink={true} // to login w/o password, just the email link and sends the login link
         appearance={{
           theme: ThemeSupa,

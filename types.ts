@@ -1,13 +1,13 @@
-import Stripe from "stripe";
+import Stripe from 'stripe';
 
-export interface UserDetails {
+// the cust types we need to map the DB's(all the table) types, and the stripe types.
+export interface Song {
   id: string;
-  first_name: string;
-  last_name: string;
-  full_name?: string;
-  avatar_url?: string;
-  billing_address?: Stripe.Address;
-  payment_method?: Stripe.PaymentMethod[Stripe.PaymentMethod.Type];
+  user_id: string;
+  author: string;
+  title: string;
+  song_path: string;
+  image_path: string;
 }
 
 export interface Product {
@@ -34,13 +34,32 @@ export interface Price {
   products?: Product;
 }
 
+export interface Customer {
+  id: string;
+  stripe_customer_id?: string;
+}
+
+export interface UserDetails {
+  id: string;
+  first_name: string;
+  last_name: string;
+  full_name?: string;
+  avatar_url?: string;
+  billing_address?: Stripe.Address;
+  payment_method?: Stripe.PaymentMethod[Stripe.PaymentMethod.Type];
+}
+
+export interface ProductWithPrice extends Product {
+  prices?: Price[];
+}
+
 export interface Subscription {
   id: string;
   user_id: string;
   status?: Stripe.Subscription.Status;
   metadata?: Stripe.Metadata;
   price_id?: string;
-  quantity?: number; // Đã đổi từ string sang number theo hướng dẫn sửa lỗi ở phút 01:51:12
+  quantity?: number;
   cancel_at_period_end?: boolean;
   created: string;
   current_period_start: string;
