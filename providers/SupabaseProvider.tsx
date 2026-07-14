@@ -13,15 +13,15 @@ interface SupabaseProviderProps {
 const SupabaseProvider: React.FC<SupabaseProviderProps> = ({
   children
 }) => {
-    const [supabaseClient] = useState(() =>
+  const [supabaseClient] = useState(() =>
     createClientComponentClient<Database>() // now our supabase client has all of our DB
   );
 
-  return ( 
-    <SessionContextProvider supabaseClient={supabaseClient}>
+  return (
+    <SessionContextProvider supabaseClient={supabaseClient as any}>
       {children}
     </SessionContextProvider>
   );
 }
- 
+
 export default SupabaseProvider; // wrap our sidebar with our supabase client
