@@ -1,73 +1,45 @@
-import Stripe from 'stripe';
+// queued: waiting for the worker · running: fetching text / generating audio
+// done: reached the target chapter count (or the last chapter of the story)
+// paused: stopped by the user · error: could not fetch the next chapter
+export type StoryStatus = "queued" | "running" | "done" | "paused" | "error";
 
-// the cust types we need to map the DB's(all the table) types, and the stripe types.
-export interface Song {
-  id: string;
-  user_id: string;
-  author: string;
+// fetched: text saved, waiting for its voice · generating: the AI voice is reading it
+export type ChapterStatus = "fetched" | "generating" | "done" | "error";
+
+export interface Story {
+  id: number;
   title: string;
-  song_path: string;
-  image_path: string;
+  author: string | null;
+  cover_url: string | null;
+  source_url: string;
+  next_url: string | null;
+  target_chapters: number;
+  // Reading speed in percent relative to normal, e.g. -10 or +20.
+  rate: number;
+  status: StoryStatus;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+  chapter_count: number;
+  done_count: number;
+  total_duration: number;
 }
 
-export interface Product {
-  id: string;
-  active?: boolean;
-  name?: string;
-  description?: string;
-  image?: string;
-  metadata?: Stripe.Metadata;
+export interface Chapter {
+  id: number;
+  story_id: number;
+  idx: number;
+  title: string;
+  source_url: string;
+  char_count: number;
+  status: ChapterStatus;
+  error: string | null;
+  audio_file: string | null;
+  duration: number | null;
+  created_at: string;
 }
 
-export interface Price {
-  id: string;
-  product_id?: string;
-  active?: boolean;
-  description?: string;
-  unit_amount?: number;
-  currency?: string;
-  type?: Stripe.Price.Type;
-  interval?: Stripe.Price.Recurring.Interval;
-  interval_count?: number;
-  trial_period_days?: number | null;
-  metadata?: Stripe.Metadata;
-  products?: Product;
-}
-
-export interface Customer {
-  id: string;
-  stripe_customer_id?: string;
-}
-
-export interface UserDetails {
-  id: string;
-  first_name: string;
-  last_name: string;
-  full_name?: string;
-  avatar_url?: string;
-  billing_address?: Stripe.Address;
-  payment_method?: Stripe.PaymentMethod[Stripe.PaymentMethod.Type];
-}
-
-export interface ProductWithPrice extends Product {
-  prices?: Price[];
-}
-
-export interface Subscription {
-  id: string;
-  user_id: string;
-  status?: Stripe.Subscription.Status;
-  metadata?: Stripe.Metadata;
-  price_id?: string;
-  quantity?: number;
-  cancel_at_period_end?: boolean;
-  created: string;
-  current_period_start: string;
-  current_period_end: string;
-  ended_at?: string;
-  cancel_at?: string;
-  canceled_at?: string;
-  trial_start?: string;
-  trial_end?: string;
-  prices?: Price;
+export interface StoryWithChapters extends Story {
+  chapters: Chapter[];
+  ffmpeg: boolean;
 }
