@@ -1,21 +1,28 @@
-import { create } from 'zustand';
+import { create } from "zustand";
 
-// hook for our media player, and its state management
+export interface Track {
+  chapterId: number;
+  storyId: number;
+  title: string;
+  storyTitle: string;
+  cover: string | null;
+}
+
+// The playlist is the chapters of one story; the player moves through them in order.
 interface PlayerStore {
-  ids: string[];
-  activeId?: string;
-  setId: (id: string) => void;
-  setIds: (ids: string[]) => void;
+  tracks: Track[];
+  index: number;
+  play: (tracks: Track[], index: number) => void;
+  setIndex: (index: number) => void;
   reset: () => void;
 }
 
-// lets create the player store with our initial state
 const usePlayer = create<PlayerStore>((set) => ({
-  ids: [],
-  activeId: undefined,
-  setId: (id: string) => set({ activeId: id }),
-  setIds: (ids: string[]) => set({ ids }),
-  reset: () => set({ ids: [], activeId: undefined })
+  tracks: [],
+  index: -1,
+  play: (tracks, index) => set({ tracks, index }),
+  setIndex: (index) => set({ index }),
+  reset: () => set({ tracks: [], index: -1 }),
 }));
 
 export default usePlayer;

@@ -1,37 +1,28 @@
-import './globals.css'
-import { Figtree } from 'next/font/google'
+import "./globals.css";
+import { Be_Vietnam_Pro } from "next/font/google";
 
-import Sidebar from '../components/Sidebar'
-import SupabaseProvider from '../providers/SupabaseProvider'
-import UserProvider from '@/providers/UserProvider'
-import ModalProvider from '@/providers/ModalProvider'
-import ToasterProvider from '@/providers/ToasterProvider'
+import Sidebar from "@/components/Sidebar";
+import Player from "@/components/Player";
+import ToasterProvider from "@/providers/ToasterProvider";
 
-const font = Figtree({ subsets: ['latin'] })
+const font = Be_Vietnam_Pro({ subsets: ["latin", "vietnamese"], weight: ["400", "500", "600", "700"] });
 
 export const metadata = {
-  title: 'StoryCast',
-  description: 'Listen to Stories!',
-}
+  title: "StoryCast",
+  description: "Biến truyện chữ thành truyện audio với giọng đọc AI",
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body className={font.className}>
+    <html lang="vi">
+      <body className={`${font.className} h-full`}>
         <ToasterProvider />
-        <SupabaseProvider>
-          <UserProvider>
-            <ModalProvider /> {/* Đã xóa products={[]} ở đây */}
-            <Sidebar>
-              {children}
-            </Sidebar>
-          </UserProvider>
-        </SupabaseProvider>
+        {/* pb leaves room for the fixed player bar */}
+        <div className="h-full pb-[88px] md:pb-[76px]">
+          <Sidebar>{children}</Sidebar>
+        </div>
+        <Player />
       </body>
     </html>
-  )
+  );
 }
