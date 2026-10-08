@@ -6,7 +6,7 @@ import { Readability } from "@mozilla/readability";
 const USER_AGENT =
   "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Safari/537.36";
 
-// Known containers for chapter text on popular Vietnamese story sites. Anything else falls back to Readability.
+// Known containers for chapter text on Vietnamese & Chinese story sites. Anything else falls back to Readability.
 const CONTENT_SELECTORS = [
   "#chapter-c",
   ".chapter-c",
@@ -24,16 +24,49 @@ const CONTENT_SELECTORS = [
   "#vungdoc",
   "[itemprop=articleBody]",
   "article .entry-content",
+  // Common Chinese story site selectors (69shu, biquge, etc.)
+  "#content",
+  "#chaptercontent",
+  "#htmlContent",
+  "#txtContent",
+  ".txtnav",
+  "#contenttxt",
+  "#BookText",
+  "#nr1",
+  "#nr",
+  ".read-content",
 ];
 
-const CHAPTER_TITLE_SELECTORS = [".chapter-title", ".chapter-name", ".chr-title", "h2.title", ".current-chapter", "h1"];
-const STORY_TITLE_SELECTORS = [".truyen-title", ".story-title", "h3.title", "[itemprop=name]", ".book-name", "h1"];
-const NEXT_SELECTORS = ["#next_chap", "#next_chapter", "a.next-chap", "a.btn-next", "a[rel=next]", "link[rel=next]"];
-const NEXT_TEXT = /(chương\s*(sau|tiếp|kế)|tiếp\s*theo|next\s*chap|^\s*next\s*$|^\s*sau\s*[»>›]?\s*$)/i;
+const CHAPTER_TITLE_SELECTORS = [
+  ".chapter-title",
+  ".chapter-name",
+  ".chr-title",
+  "h2.title",
+  ".current-chapter",
+  ".bookname h1",
+  ".readTitle",
+  "h1.title",
+  "h1",
+];
+const STORY_TITLE_SELECTORS = [".truyen-title", ".story-title", "h3.title", "[itemprop=name]", ".book-name", ".booktitle", "h1"];
+const NEXT_SELECTORS = [
+  "#next_chap",
+  "#next_chapter",
+  "a.next-chap",
+  "a.btn-next",
+  "a[rel=next]",
+  "link[rel=next]",
+  "#next_url",
+  "#nextChapter",
+  "#linkNext",
+  "a#A3",
+  "#pt_next",
+];
+const NEXT_TEXT = /(chương\s*(sau|tiếp|kế)|tiếp\s*theo|next\s*chap|^\s*next\s*$|^\s*sau\s*[»>›]?\s*$|下一[章页節]|下[一頁]|后一[章页]|Next)/i;
 
 // Lines that are site boilerplate rather than story text.
 const JUNK_LINE =
-  /(truyenfull|bạn đang đọc truyện|nguồn\s*:|đọc truyện (online|chữ)|chương trước|chương sau|https?:\/\/|www\.|\.(com|net|vn|io|live|today)\b)/i;
+  /(truyenfull|bạn đang đọc truyện|nguồn\s*:|đọc truyện (online|chữ)|chương trước|chương sau|https?:\/\/|www\.|\.(com|net|vn|io|live|today|cn|org)\b|請收藏本站|请收藏本站|手機用戶請瀏覽|手机用户请浏览|最新網址|最新网址)/i;
 
 export interface PageInfo {
   url: string;
@@ -55,7 +88,7 @@ export async function fetchHtml(url: string): Promise<{ html: string; finalUrl: 
       const res = await fetch(url, {
         headers: {
           "User-Agent": USER_AGENT,
-          "Accept-Language": "vi-VN,vi;q=0.9,en;q=0.8",
+          "Accept-Language": "vi-VN,vi;q=0.9,zh-CN,zh;q=0.8,en;q=0.7",
           Accept: "text/html,application/xhtml+xml",
         },
         redirect: "follow",
@@ -178,7 +211,7 @@ function findNextUrl(doc: Document, url: string): string | null {
   return null;
 }
 
-const CHAPTER_NUMBER = /(?:chuong|chương|chapter|chap)[-_\s]*0*(\d+)/i;
+const CHAPTER_NUMBER = /(?:chuong|chương|chapter|chap|第)[-_\s]*0*(\d+)/i;
 
 // On a story's overview page, find the link to its first chapter.
 function findFirstChapterUrl(doc: Document, url: string): string | null {
@@ -187,7 +220,7 @@ function findFirstChapterUrl(doc: Document, url: string): string | null {
     const link = resolveLink(a.getAttribute("href"), url);
     if (!link) continue;
     const label = (a.textContent ?? "").trim();
-    if (/đọc từ đầu|đọc truyện|read from beginning|start reading/i.test(label) && CHAPTER_NUMBER.test(link)) {
+    if (/đọc từ đầu|đọc truyện|read from beginning|start reading|开始阅读|從頭閱讀|从头阅读/i.test(label) && CHAPTER_NUMBER.test(link)) {
       return link;
     }
     const match = decodeURI(new URL(link).pathname).match(CHAPTER_NUMBER) || label.match(CHAPTER_NUMBER);

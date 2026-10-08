@@ -2,8 +2,26 @@ import "server-only";
 
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 
-// Microsoft Edge's free neural voice: Vietnamese, female.
-export const VOICE = "vi-VN-HoaiMyNeural";
+// Microsoft Edge's free neural voices.
+export const VOICE_VI = "vi-VN-HoaiMyNeural";
+export const VOICE_ZH = "zh-CN-XiaoxiaoNeural"; // Giọng nữ đọc truyện Trung Quốc tự nhiên nhất
+export const VOICE_ZH_MALE = "zh-CN-YunxiNeural"; // Giọng nam đọc truyện tiên hiệp, kiếm hiệp
+export const VOICE = VOICE_VI;
+
+/**
+ * Tự động nhận diện ngôn ngữ của truyện dựa trên tỷ lệ chữ Hán (CJK).
+ * Nếu văn bản có ký tự tiếng Trung, tự động chuyển sang giọng đọc tiếng Trung.
+ */
+export function detectVoice(text: string): string {
+  const cjkMatches = text.match(/[\u4e00-\u9fff\u3400-\u4dbf]/g);
+  const cjkCount = cjkMatches ? cjkMatches.length : 0;
+  // Nếu có hơn 15 ký tự chữ Hán hoặc chiếm hơn 10% độ dài
+  if (cjkCount > 15 || (text.length > 0 && cjkCount / text.length > 0.1)) {
+    return VOICE_ZH;
+  }
+  return VOICE_VI;
+}
+
 const FORMAT = OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3;
 const BYTES_PER_SECOND = 48_000 / 8;
 
@@ -31,8 +49,8 @@ export function splitText(text: string, max = MAX_CHUNK): string[] {
       current = paragraph + "\n";
       continue;
     }
-    // A single huge paragraph: cut at sentence ends, then at spaces.
-    for (const sentence of paragraph.match(/[^.!?…]+[.!?…]*\s*/g) ?? [paragraph]) {
+    // A single huge paragraph: cut at sentence ends (supports both Latin and CJK punctuation), then at spaces.
+    for (const sentence of paragraph.match(/[^.!?…。！？；\n]+[.!?…。！？；]*\s*/g) ?? [paragraph]) {
       if (current.length + sentence.length > max) push();
       if (sentence.length > max) {
         for (let i = 0; i < sentence.length; i += max) chunks.push(sentence.slice(i, i + max));
@@ -54,9 +72,9 @@ async function synthesizeChunk(tts: MsEdgeTTS, text: string, rate: number): Prom
   return audio;
 }
 
-async function connect(): Promise<MsEdgeTTS> {
+async function connect(voice = VOICE_VI): Promise<MsEdgeTTS> {
   const tts = new MsEdgeTTS();
-  await tts.setMetadata(VOICE, FORMAT);
+  await tts.setMetadata(voice, FORMAT);
   return tts;
 }
 
@@ -67,14 +85,16 @@ const PARALLEL = 3;
 export async function synthesize(
   text: string,
   rate: number,
-  shouldStop: () => boolean = () => false
+  shouldStop: () => boolean = () => false,
+  voiceOverride?: string
 ): Promise<{ audio: Buffer; duration: number }> {
+  const selectedVoice = voiceOverride || detectVoice(text);
   const chunks = splitText(text);
   const parts: Buffer[] = new Array(chunks.length);
   let nextChunk = 0;
 
   const worker = async () => {
-    let tts = await connect();
+    let tts = await connect(selectedVoice);
     try {
       while (nextChunk < chunks.length) {
         const i = nextChunk++;

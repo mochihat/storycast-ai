@@ -87,7 +87,7 @@ export default function NewStory() {
             className="w-full max-w-sm accent-emerald-500"
           />
           <span className="text-sm text-neutral-400">
-            Giọng: <b>Hoài My</b> (nữ, tiếng Việt). Bạn vẫn chỉnh được tốc độ nghe trên trình phát.
+            Giọng đọc tự động: <b>Hoài My</b> (tiếng Việt) hoặc <b>Xiaoxiao</b> (tiếng Trung). Bạn vẫn chỉnh được tốc độ nghe trên trình phát.
           </span>
         </label>
 
