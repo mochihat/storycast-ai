@@ -48,12 +48,12 @@ export default function NewStory() {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={loading}
-            placeholder="https://truyenfull.today/ten-truyen/chuong-1/"
+            placeholder="https://www.wattpad.com/... hoặc https://truyenfull.today/..."
             className="rounded-md bg-neutral-700 px-3 py-3 text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
           <span className="text-sm text-neutral-400">
-            Dán link của <b>chương muốn bắt đầu nghe</b> (ví dụ chương 1), hoặc link trang giới thiệu truyện. Ứng dụng
-            sẽ tự đi theo nút “Chương sau” để lấy các chương tiếp theo.
+            Dán link của <b>chương muốn bắt đầu nghe</b> (ví dụ chương 1), hoặc link trang giới thiệu truyện trên Wattpad, Truyenfull, v.v. Ứng dụng
+            sẽ tự động tải toàn bộ nội dung chương (bao gồm tất cả các trang) và đi tiếp các chương sau.
           </span>
         </label>
 

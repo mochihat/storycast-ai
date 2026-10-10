@@ -81,6 +81,253 @@ export interface PageInfo {
   isChapterUrl: boolean;
 }
 
+export function isWattpadUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return /(?:^|\.)wattpad\.com$/i.test(parsed.hostname);
+  } catch {
+    return false;
+  }
+}
+
+async function scrapeWattpad(url: string): Promise<PageInfo> {
+  const parsedUrl = new URL(url);
+  const pathname = decodeURI(parsedUrl.pathname);
+
+  const storyMatch = pathname.match(/^\/story\/(\d+)/i);
+  const partMatch = pathname.match(/^\/(\d+)(?:-[^/]+)?(?:\/page\/\d+)?/i);
+
+  // If chapter link has /page/N, fetch the base chapter URL
+  const chapterBaseUrl = partMatch ? `https://www.wattpad.com/${partMatch[1]}` : url;
+  const { html, finalUrl } = await fetchHtml(chapterBaseUrl);
+
+  if (storyMatch) {
+    let storyTitle: string | null = null;
+    let author: string | null = null;
+    let coverUrl: string | null = null;
+    let firstChapterUrl: string | null = null;
+
+    // 1. Try window.__remixContext
+    const remixMatch = html.match(/window\.__remixContext\s*=\s*(\{[\s\S]*?\});\s*<\/script>/);
+    if (remixMatch) {
+      try {
+        const remix = JSON.parse(remixMatch[1]);
+        const loaderData = remix.state?.loaderData || {};
+        for (const key of Object.keys(loaderData)) {
+          const item = loaderData[key];
+          if (item?.story) {
+            storyTitle = item.story.title || null;
+            author = item.story.user?.name || null;
+            coverUrl = item.story.cover || null;
+            if (Array.isArray(item.story.parts) && item.story.parts.length > 0) {
+              const firstPart = item.story.parts[0];
+              firstChapterUrl = firstPart.url
+                ? resolveLink(firstPart.url, "https://www.wattpad.com")
+                : (firstPart.id ? `https://www.wattpad.com/${firstPart.id}` : null);
+            } else if (item.story.firstPartId) {
+              firstChapterUrl = `https://www.wattpad.com/${item.story.firstPartId}`;
+            }
+            break;
+          }
+        }
+      } catch {}
+    }
+
+    // 2. Fallback using DOM and JSON-LD
+    const dom = new JSDOM(html, { url: finalUrl, virtualConsole: new VirtualConsole() });
+    const doc = dom.window.document;
+
+    if (!storyTitle || !author || !coverUrl) {
+      const ldScript = doc.querySelector('script[type="application/ld+json"]');
+      if (ldScript?.textContent) {
+        try {
+          const ld = JSON.parse(ldScript.textContent);
+          if (!storyTitle) storyTitle = ld.name || ld.headline || null;
+          if (!author) author = ld.author?.name || null;
+          if (!coverUrl) coverUrl = ld.image || ld.thumbnailUrl || null;
+        } catch {}
+      }
+    }
+
+    if (!storyTitle) {
+      storyTitle = firstText(doc, STORY_TITLE_SELECTORS) || doc.title.split(/[-|:]/)[0].trim() || null;
+    }
+    if (!coverUrl) {
+      coverUrl = doc.querySelector('meta[property="og:image"]')?.getAttribute("content")?.trim() || null;
+    }
+    if (!firstChapterUrl) {
+      for (const a of doc.querySelectorAll("a[href]")) {
+        const href = a.getAttribute("href");
+        if (href && /^\/\d+(?:-[^/]+)?$/i.test(href)) {
+          firstChapterUrl = resolveLink(href, "https://www.wattpad.com");
+          break;
+        }
+      }
+    }
+
+    return {
+      url: finalUrl,
+      storyTitle: storyTitle ? fixText(storyTitle) : null,
+      chapterTitle: null,
+      author: author ? fixText(author) : null,
+      coverUrl,
+      text: "",
+      nextUrl: null,
+      firstChapterUrl,
+      isChapterUrl: false,
+    };
+  }
+
+  if (partMatch) {
+    const partId = partMatch[1];
+    let storyTitle: string | null = null;
+    let chapterTitle: string | null = null;
+    let author: string | null = null;
+    let coverUrl: string | null = null;
+    let nextUrl: string | null = null;
+    let canonicalPartUrl: string | null = null;
+    let pages = 1;
+
+    // 1. Try window.prefetched
+    const prefetchedMatch = html.match(/window\.prefetched\s*=\s*(\{[\s\S]*?\});\s*<\/script>/);
+    if (prefetchedMatch) {
+      try {
+        const prefetched = JSON.parse(prefetchedMatch[1]);
+        const partKey = Object.keys(prefetched).find((k) => k.startsWith(`part.${partId}`) || k.startsWith("part."));
+        const partData = partKey ? prefetched[partKey]?.data : null;
+        if (partData) {
+          chapterTitle = partData.title || null;
+          storyTitle = partData.group?.title || null;
+          author = partData.group?.user?.name || null;
+          coverUrl = partData.group?.cover || null;
+          canonicalPartUrl = partData.url || null;
+          pages = Math.max(Number(partData.pages) || 1, 1);
+
+          if (partData.nextPart?.url) {
+            nextUrl = resolveLink(partData.nextPart.url, "https://www.wattpad.com");
+          } else if (partData.nextPart?.id) {
+            nextUrl = `https://www.wattpad.com/${partData.nextPart.id}`;
+          } else if (Array.isArray(partData.group?.parts)) {
+            const idx = partData.group.parts.findIndex((p: { id: number | string }) => String(p.id) === String(partId));
+            if (idx !== -1 && idx < partData.group.parts.length - 1) {
+              const nextPart = partData.group.parts[idx + 1];
+              nextUrl = nextPart.url ? resolveLink(nextPart.url, "https://www.wattpad.com") : `https://www.wattpad.com/${nextPart.id}`;
+            }
+          }
+        }
+      } catch {}
+    }
+
+    // 2. Fetch full text via Wattpad apiv2 (returns all pages of the chapter combined)
+    let text = "";
+    try {
+      const apiRes = await fetch(`https://www.wattpad.com/apiv2/?m=storytext&id=${partId}`, {
+        headers: {
+          "User-Agent": USER_AGENT,
+          "Accept-Language": "vi-VN,vi;q=0.9,zh-CN,zh;q=0.8,en;q=0.7",
+          Accept: "text/html,application/xhtml+xml",
+        },
+        signal: AbortSignal.timeout(20_000),
+      });
+      if (apiRes.ok) {
+        const apiHtml = await apiRes.text();
+        if (apiHtml && apiHtml.length > 50) {
+          const frag = JSDOM.fragment(apiHtml);
+          frag.querySelectorAll('script, style, noscript, iframe, ins, [id^="ads"], [class^="ads"], [class*=" ads"]').forEach((el) => el.remove());
+          text = cleanText(elementToText(frag));
+        }
+      }
+    } catch {}
+
+    // Fallback if apiv2 without page returned nothing and pages > 1
+    if (!text && pages > 1) {
+      const chunks: string[] = [];
+      for (let p = 1; p <= pages; p++) {
+        try {
+          const pRes = await fetch(`https://www.wattpad.com/apiv2/?m=storytext&id=${partId}&page=${p}`, {
+            headers: { "User-Agent": USER_AGENT },
+            signal: AbortSignal.timeout(15_000),
+          });
+          if (pRes.ok) {
+            const pHtml = await pRes.text();
+            const frag = JSDOM.fragment(pHtml);
+            frag.querySelectorAll('script, style, noscript, iframe, ins, [id^="ads"], [class^="ads"], [class*=" ads"]').forEach((el) => el.remove());
+            const cleaned = cleanText(elementToText(frag));
+            if (cleaned) chunks.push(cleaned);
+          }
+        } catch {}
+      }
+      if (chunks.length > 0) {
+        text = chunks.join("\n\n").trim();
+      }
+    }
+
+    // Fallback from chapter HTML DOM if apiv2 didn't yield text
+    const dom = new JSDOM(html, { url: finalUrl, virtualConsole: new VirtualConsole() });
+    const doc = dom.window.document;
+
+    if (!text || text.length < 100) {
+      doc.querySelectorAll('script, style, noscript, iframe, ins, [id^="ads"], [class^="ads"], [class*=" ads"]').forEach((el) => el.remove());
+      const pre = doc.querySelector("pre");
+      if (pre) {
+        text = cleanText(elementToText(pre));
+      } else {
+        const pEls = doc.querySelectorAll("p[data-p-id]");
+        if (pEls.length > 0) {
+          text = cleanText(Array.from(pEls).map((p) => p.textContent || "").join("\n\n"));
+        }
+      }
+    }
+
+    // Fallback for metadata if prefetched wasn't available
+    if (!chapterTitle) {
+      chapterTitle = doc.querySelector(".panel-reading h1, h1.h2, h1")?.textContent?.trim() || null;
+    }
+    if (!storyTitle) {
+      storyTitle = doc.querySelector(".story-info .title a, .story-stats a")?.textContent?.trim() || doc.title.split(/[-|:]/)[0].trim() || null;
+    }
+    if (!author) {
+      author = doc.querySelector(".author a, [itemprop=author]")?.textContent?.trim() || null;
+    }
+    if (!coverUrl) {
+      coverUrl = doc.querySelector('meta[property="og:image"]')?.getAttribute("content")?.trim() || null;
+    }
+    if (!nextUrl) {
+      // Find next chapter link in DOM, strictly avoiding /page/ links
+      for (const a of doc.querySelectorAll("a[href]")) {
+        const href = a.getAttribute("href") || "";
+        if (/\/page\/\d+/i.test(href)) continue;
+        const label = `${a.textContent ?? ""} ${a.getAttribute("title") ?? ""}`.trim();
+        if (/đọc phần tiếp theo|tiếp theo|chương sau|next part/i.test(label) && /^\/\d+/i.test(href)) {
+          const resolved = resolveLink(href, "https://www.wattpad.com");
+          if (resolved && !sameUrl(resolved, finalUrl)) {
+            nextUrl = resolved;
+            break;
+          }
+        }
+      }
+    }
+
+    if (chapterTitle && storyTitle && chapterTitle.startsWith(storyTitle)) {
+      chapterTitle = chapterTitle.slice(storyTitle.length).replace(/^\s*[-:|]\s*/, "").trim() || chapterTitle;
+    }
+
+    return {
+      url: canonicalPartUrl || `https://www.wattpad.com/${partId}`,
+      storyTitle: storyTitle ? fixText(storyTitle) : null,
+      chapterTitle: chapterTitle ? fixText(chapterTitle) : null,
+      author: author ? fixText(author) : null,
+      coverUrl,
+      text,
+      nextUrl,
+      firstChapterUrl: null,
+      isChapterUrl: true,
+    };
+  }
+
+  return parsePage(html, finalUrl);
+}
+
 export async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string }> {
   let lastError: unknown;
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -105,6 +352,9 @@ export async function fetchHtml(url: string): Promise<{ html: string; finalUrl: 
 }
 
 export async function scrapePage(url: string): Promise<PageInfo> {
+  if (isWattpadUrl(url)) {
+    return scrapeWattpad(url);
+  }
   const { html, finalUrl } = await fetchHtml(url);
   return parsePage(html, finalUrl);
 }
@@ -160,7 +410,9 @@ export function parsePage(html: string, url: string): PageInfo {
     text,
     nextUrl,
     firstChapterUrl,
-    isChapterUrl: CHAPTER_NUMBER.test(decodeURI(new URL(url).pathname)),
+    isChapterUrl: isWattpadUrl(url)
+      ? /^\/\d+(?:-[^/]+)?(?:\/page\/\d+)?/i.test(decodeURI(new URL(url).pathname))
+      : CHAPTER_NUMBER.test(decodeURI(new URL(url).pathname)),
   };
 }
 
@@ -195,17 +447,22 @@ function sameUrl(a: string, b: string) {
 }
 
 function findNextUrl(doc: Document, url: string): string | null {
+  const isWattpad = isWattpadUrl(url);
   for (const selector of NEXT_SELECTORS) {
     for (const el of doc.querySelectorAll(selector)) {
       if (el.classList.contains("disabled")) continue;
-      const link = resolveLink(el.getAttribute("href"), url);
+      const href = el.getAttribute("href");
+      if (isWattpad && href && /\/page\/\d+/i.test(href)) continue;
+      const link = resolveLink(href, url);
       if (link && !sameUrl(link, url)) return link;
     }
   }
   for (const a of doc.querySelectorAll("a[href]")) {
+    const href = a.getAttribute("href");
+    if (isWattpad && href && /\/page\/\d+/i.test(href)) continue;
     const label = `${a.textContent ?? ""} ${a.getAttribute("title") ?? ""}`.trim();
     if (!NEXT_TEXT.test(label)) continue;
-    const link = resolveLink(a.getAttribute("href"), url);
+    const link = resolveLink(href, url);
     if (link && !sameUrl(link, url)) return link;
   }
   return null;

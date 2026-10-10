@@ -118,7 +118,7 @@ async function processStory(storyId: number) {
     if (page.text.length < 50) {
       throw new Error(`Không tìm thấy nội dung chương ở ${story.next_url}`);
     }
-    if (hasChapterUrl(storyId, page.url)) {
+    if (hasChapterUrl(storyId, page.url) || hasChapterUrl(storyId, story.next_url)) {
       // The "next" link led back to a chapter we already have: this is the end of the story.
       updateStory(storyId, { next_url: null });
       break;
