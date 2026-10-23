@@ -1,7 +1,7 @@
 # 🎙️ StoryCast AI
 
 <p align="center">
-  <strong>Biến truyện chữ trên mạng thành Sách nói (Audiobook) chất lượng cao bằng giọng đọc AI tiếng Việt.</strong>
+  <strong>Turn web novels into high-quality audiobooks with natural-sounding AI voices.</strong>
 </p>
 
 <p align="center">
@@ -15,93 +15,140 @@
 
 ---
 
-## 🌟 Giới thiệu
+## 🌟 Overview
 
-**StoryCast AI** là giải pháp mã nguồn mở giúp tự động hóa quá trình chuyển đổi truyện chữ trực tuyến thành audiobook tiếng Việt. Ứng dụng tự động cào nội dung từng chương, làm sạch văn bản, chuyển thành giọng nói AI truyền cảm, tích hợp sẵn trình nghe nhạc trên nền web và cho phép xuất thành file sách nói chuẩn **.m4b** hoàn chỉnh.
+**StoryCast AI** is an open-source tool that automates turning online novels into audiobooks. It scrapes each chapter, cleans up the text, reads it aloud with an expressive AI voice, plays it in a built-in web player, and can export the whole story as a single **.m4b** audiobook file.
 
-Hoàn toàn **miễn phí**, không cần đăng ký tài khoản hay API Key của bên thứ ba!
+Completely **free** — no account sign-up and no third-party API key required!
 
 ---
 
-## ✨ Tính năng nổi bật
+## ✨ Features
 
-- 🕷️ **Trích xuất thông minh (Smart Scraper):**
-  - Chỉ cần dán link truyện (trang giới thiệu hoặc chương 1).
-  - Tự động nhận diện nội dung chương bằng `@mozilla/readability` và `jsdom`.
-  - Hỗ trợ cả website truyện chữ tiếng Việt (TruyenFull, Tangthuvien...) và tiếng Trung (69shu, Biquge...).
-  - Tự động dò nút *"Chương sau"* (`下一章`), loại bỏ tạp âm, quảng cáo và ký tự chống copy.
-- 🎙️ **Giọng đọc AI tự nhiên đa ngôn ngữ (Neural TTS):**
-  - **Tự động nhận diện ngôn ngữ:** Tự động phát hiện tiếng Việt hoặc tiếng Trung dựa trên nội dung văn bản.
-  - **Tiếng Việt:** Giọng đọc truyền cảm **Hoài My (`vi-VN-HoaiMyNeural`)**.
-  - **Tiếng Trung:** Giọng đọc tiểu thuyết mượt mà **Xiaoxiao (`zh-CN-XiaoxiaoNeural`)**.
-  - Hoàn toàn miễn phí, không giới hạn ký tự và không yêu cầu API Key.
-  - Cơ chế chia đoạn thông minh (Paragraph/Sentence Chunking) hỗ trợ cả dấu ngắt câu Latin và CJK (`。！？；`).
-- 🎧 **Trình nghe Web hiện đại (Built-in Web Player):**
-  - Tự động nhớ chương và vị trí giây đang nghe.
-  - Tự động chuyển tiếp chương tiếp theo khi nghe hết.
-  - Tùy chỉnh tốc độ đọc linh hoạt (`0.75x` đến `2.0x`).
-- 📦 **Xuất Audiobook hoàn chỉnh:**
-  - Tải nhanh từng chương định dạng `.mp3`.
-  - Đóng gói toàn bộ truyện thành **một file duy nhất `.m4b`** có mục lục chương (Chapters metadata), tương thích với Apple Books, Smart AudioBook Player, Voice,...
-- ⚙️ **Hàng đợi chạy nền (Background Worker):**
-  - Hàng đợi ngầm xử lý lần lượt từng chương, không gây đơ lag giao diện.
-  - Quản lý trạng thái tiến trình thời gian thực.
+- 🕷️ **Smart Scraper:**
+  - Just paste a story link (the story's main page or chapter 1).
+  - Automatically extracts chapter content using `@mozilla/readability` and `jsdom`.
+  - Works with both Vietnamese novel sites (TruyenFull, Tangthuvien...) and Chinese ones (69shu, Biquge...).
+  - Automatically finds the *"Next chapter"* button (`Chương sau`, `下一章`) and strips noise, ads and anti-copy characters.
+- 🎙️ **Natural multilingual AI voices (Neural TTS):**
+  - **Automatic language detection:** detects Vietnamese or Chinese from the chapter text.
+  - **Vietnamese:** the expressive **Hoài My (`vi-VN-HoaiMyNeural`)** voice.
+  - **Chinese:** the smooth novel-reading **Xiaoxiao (`zh-CN-XiaoxiaoNeural`)** voice.
+  - Completely free, no character limits, and no API key needed.
+  - Smart paragraph/sentence chunking that understands both Latin and CJK punctuation (`。！？；`).
+- 🎧 **Built-in Web Player:**
+  - Remembers which chapter you were on and the exact second you stopped.
+  - Automatically moves on to the next chapter when one finishes.
+  - Adjustable playback speed (`0.75x` to `2.0x`).
+- 📦 **Full audiobook export:**
+  - Download individual chapters as `.mp3`.
+  - Package the whole story into **one `.m4b` file** with chapter markers, compatible with Apple Books, Smart AudioBook Player, Voice, and more.
+- ⚙️ **Background Worker:**
+  - A background queue processes chapters one by one without freezing the UI.
+  - Real-time progress tracking.
 - 🗄️ **Zero-Config Database:**
-  - Sử dụng SQLite tích hợp sẵn trong Node.js (`node:sqlite`), không cần cài đặt thêm server cơ sở dữ liệu.
+  - Uses the SQLite built into Node.js (`node:sqlite`) — no database server to install.
 
 ---
 
-## 🛠️ Công nghệ sử dụng
+## 🛠️ Tech Stack
 
-| Lớp | Công nghệ / Thư viện |
+| Layer | Technology / Library |
 |---|---|
 | **Framework** | [Next.js 16](https://nextjs.org/) (App Router), [React 19](https://react.dev/) |
-| **Ngôn ngữ** | [TypeScript 5](https://www.typescriptlang.org/) |
-| **Giao diện** | [Tailwind CSS v4](https://tailwindcss.com/), Radix UI, React Icons |
-| **Quản lý trạng thái** | [Zustand](https://zustand-demo.pmnd.rs/) |
+| **Language** | [TypeScript 5](https://www.typescriptlang.org/) |
+| **UI** | [Tailwind CSS v4](https://tailwindcss.com/), Radix UI, React Icons |
+| **State management** | [Zustand](https://zustand-demo.pmnd.rs/) |
 | **Text-to-Speech** | [msedge-tts](https://github.com/schroffl/msedge-tts) |
 | **Parser & Scraper** | `@mozilla/readability`, `jsdom` |
-| **Cơ sở dữ liệu** | `node:sqlite` (Native SQLite trong Node.js) |
-| **Xử lý Audio** | `ffmpeg` |
+| **Database** | `node:sqlite` (native SQLite in Node.js) |
+| **Audio processing** | `ffmpeg` |
 
 ---
 
-## 📋 Yêu cầu hệ thống
+## 📋 Requirements
 
-Trước khi bắt đầu, hãy đảm bảo máy tính đã cài đặt:
+You need **two** things installed before you start:
 
-1. **Node.js**: Phiên bản **`>= 22.13.0`** *(bắt buộc để sử dụng `node:sqlite`)*.
-   ```bash
-   node -v
-   ```
-2. **ffmpeg**: Cần thiết cho tính năng gộp file `.m4b`.
-   - **Ubuntu/Debian:** `sudo apt install ffmpeg -y`
-   - **macOS:** `brew install ffmpeg`
-   - **Windows:** Cài đặt qua `winget install Gyan.FFmpeg` hoặc Chocolatey.
+### 1. Node.js `>= 22.13.0` (required)
+
+Node.js provides the `node` and `npm` commands used in every step below, and version 22.13+ is required for `node:sqlite`.
+
+First, check whether you already have it:
+
+```bash
+node -v
+```
+
+- If it prints `v22.13.0` or higher, you're good — skip to step 2.
+- If it prints **`command not found`**, or a version lower than `v22.13.0`, install Node.js first using **one** of the options below.
+
+**Linux / macOS — using nvm (recommended, works on any distro):**
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+# close and reopen your terminal, then:
+nvm install 22
+```
+
+**Ubuntu / Debian — using apt:**
+```bash
+sudo apt install nodejs npm -y
+node -v   # must be v22.13.0 or higher
+```
+> ⚠️ The Node.js version in apt depends on your Ubuntu/Debian release. Older releases (e.g. Ubuntu 22.04 / 24.04) ship a version that is too old — if `node -v` shows lower than `v22.13.0`, remove it and use nvm instead.
+
+**macOS — using Homebrew:**
+```bash
+brew install node
+```
+
+**Windows:**
+```powershell
+winget install OpenJS.NodeJS.LTS
+```
+Or download the **LTS** installer from [nodejs.org](https://nodejs.org/). Reopen your terminal after installing.
+
+Verify the installation before continuing:
+```bash
+node -v   # v22.13.0 or higher
+npm -v
+```
+
+### 2. ffmpeg
+
+Needed to merge chapters into a `.m4b` file.
+
+- **Ubuntu/Debian:** `sudo apt install ffmpeg -y`
+- **macOS:** `brew install ffmpeg`
+- **Windows:** `winget install Gyan.FFmpeg` or via Chocolatey.
 
 ---
 
-## 🚀 Cài đặt & Khởi chạy
+## 🚀 Installation & Running
 
-### 1. Tải mã nguồn
+> Make sure `node -v` works (see [Requirements](#-requirements)) before running these steps. Without Node.js, every `npm` command fails with `npm: command not found` and nothing will be running at `localhost:3000`.
+
+### 1. Get the source code
 ```bash
 git clone https://github.com/mochihat/storycast-ai.git
 cd storycast-ai
 ```
 
-### 2. Cài đặt thư viện
+### 2. Install dependencies
 ```bash
 npm install
 ```
 
-### 3. Chạy ở chế độ phát triển (Development)
+### 3. Run in development mode
 ```bash
 npm run dev
 ```
-Mở trình duyệt truy cập: **[http://localhost:3000](http://localhost:3000)**
+Wait until the terminal shows `✓ Ready`, then open **[http://localhost:3000](http://localhost:3000)** in your browser.
 
-### 4. Build và chạy môi trường thực tế (Production - Khuyên dùng)
-Để ứng dụng chạy mượt mà, tối ưu tài nguyên và ít tốn RAM:
+Keep this terminal open — closing it (or pressing `Ctrl+C`) stops the server.
+
+### 4. Build and run in production mode (recommended)
+For smoother performance and lower memory usage:
 ```bash
 npm run build
 npm start
@@ -109,71 +156,84 @@ npm start
 
 ---
 
-## 📖 Hướng dẫn sử dụng
+## 🩺 Troubleshooting
 
-1. **Thêm truyện:**
-   - Dán URL chương 1 hoặc link trang chính của truyện (ví dụ: các nguồn truyện chữ phổ biến như `truyenfull`).
-   - Nhập số lượng chương bạn muốn tạo audio.
-2. **Theo dõi tiến độ:**
-   - Worker chạy ngầm sẽ lần lượt cào chữ và chuyển đổi audio từng chương.
-   - Trạng thái từng chương sẽ chuyển sang sẵn sàng ngay khi hoàn tất.
-3. **Thưởng thức:**
-   - Nghe trực tiếp trên thanh Player ở cuối trang.
-   - Tải file `.mp3` từng chương hoặc bấm **Tải toàn bộ (.m4b)** để chuyển vào điện thoại nghe offline.
+| Symptom | Cause & fix |
+|---|---|
+| `node: command not found` / `npm: command not found` | Node.js isn't installed. Follow [Requirements → Node.js](#1-nodejs--22130-required), then run `npm install` again. |
+| Browser says *"This site can't be reached"* at `localhost:3000` | The server isn't running. Check the terminal where you ran `npm run dev` for an error, and make sure it shows `✓ Ready`. |
+| `No such built-in module: node:sqlite` | Your Node.js is older than 22.13. Upgrade it (e.g. `nvm install 22`). |
+| `Port 3000 is in use` | Another app is using port 3000. Stop it, or open the alternative port Next.js prints in the terminal. |
+| `ExperimentalWarning: SQLite is an experimental feature` | Just a warning, not an error — the app works normally. |
+| Weird errors after `npm install` failed earlier | Delete the `node_modules` folder and run `npm install` again. |
 
 ---
 
-## 📂 Cấu trúc dự án
+## 📖 Usage
+
+1. **Add a story:**
+   - Paste the URL of chapter 1 or the story's main page (e.g. from popular sites like `truyenfull`).
+   - Enter how many chapters you want to turn into audio.
+2. **Track progress:**
+   - The background worker scrapes and converts each chapter in turn.
+   - Each chapter's status switches to ready as soon as it's done.
+3. **Listen:**
+   - Play directly from the Player bar at the bottom of the page.
+   - Download individual `.mp3` chapters, or click **Tải cả quyển (.m4b)** (download the whole book) to listen offline on your phone.
+
+---
+
+## 📂 Project Structure
 
 ```text
 storycast-ai/
 ├── app/                  # Next.js App Router (UI & API endpoints)
-│   ├── api/              # API routes xử lý truyện, audio, tải file
-│   └── page.tsx          # Trang dashboard chính
-├── components/           # Các UI component (Player, BookCard, ChapterList...)
-├── data/                 # Thư mục lưu trữ cục bộ (được gitignore)
-│   ├── storycast.db      # Cơ sở dữ liệu SQLite
-│   └── audio/            # File mp3 đã tạo theo từng ID truyện
-├── lib/                  # Logic lõi của hệ thống
-│   ├── book.ts           # Đóng gói và gắn metadata cho file m4b bằng ffmpeg
-│   ├── db.ts             # Kết nối và thao tác với node:sqlite
-│   ├── scraper.ts        # Trích xuất nội dung chương và xử lý chống copy
-│   ├── tts.ts            # Kết nối Edge TTS và cắt văn bản thành chunks
-│   └── worker.ts         # Hàng đợi (queue) xử lý ngầm
-├── types.ts              # Định nghĩa TypeScript Types
+│   ├── api/              # API routes for stories, audio and downloads
+│   └── page.tsx          # Main dashboard page
+├── components/           # UI components (Player, Sidebar, Cover...)
+├── data/                 # Local storage (gitignored)
+│   ├── storycast.db      # SQLite database
+│   └── audio/            # Generated mp3 files, grouped by story ID
+├── lib/                  # Core logic
+│   ├── book.ts           # Builds the m4b file and chapter metadata with ffmpeg
+│   ├── db.ts             # node:sqlite connection and queries
+│   ├── scraper.ts        # Chapter extraction and anti-copy cleanup
+│   ├── tts.ts            # Edge TTS connection and text chunking
+│   └── worker.ts         # Background processing queue
+├── types.ts              # TypeScript type definitions
 └── public/               # Static assets
 ```
 
 ---
 
-## 💾 Dữ liệu & Sao lưu
+## 💾 Data & Backup
 
-Mọi dữ liệu phát sinh trong quá trình sử dụng đều nằm gọn trong thư mục `data/`:
-- `data/storycast.db`: Danh sách truyện, thông tin chương và nội dung text.
-- `data/audio/<id_truyen>/`: Chứa các file audio `.mp3` từng chương.
+All data created while using the app lives in the `data/` folder:
+- `data/storycast.db`: the story list, chapter info and chapter text.
+- `data/audio/<story_id>/`: the `.mp3` audio files for each chapter.
 
-> 💡 **Mẹo:**
-> - Để **sao lưu:** Chỉ cần copy thư mục `data/`.
-> - Để **reset sạch sẽ:** Dừng server và xóa thư mục `data/`.
-
----
-
-## 🌐 Các trang truyện hỗ trợ
-
-- Đã kiểm thử tối ưu: **TruyenFull**.
-- Các trang truyện khác: StoryCast sử dụng thuật toán nhận diện nội dung thông minh (`Readability`) và tự tìm kiếm các liên kết *"Chương sau / Tiếp theo"*, do đó hầu hết các website truyện chữ cấu trúc HTML tiêu chuẩn đều hoạt động tốt.
-- *Lưu ý:* Những trang yêu cầu đăng nhập tài khoản hoặc tải nội dung chậm bằng Client-side JavaScript phức tạp có thể sẽ không trích xuất được.
+> 💡 **Tips:**
+> - To **back up:** just copy the `data/` folder.
+> - To **reset everything:** stop the server and delete the `data/` folder.
 
 ---
 
-## ⚖️ Tuyên bố miễn trừ trách nhiệm (Disclaimer)
+## 🌐 Supported Sites
 
-- Dự án này được phát triển cho mục đích **học tập, nghiên cứu và phục vụ nhu cầu nghe cá nhân**.
-- Vui lòng tôn trọng quyền tác giả, dịch giả và bản quyền của các website phát hành truyện.
-- Giọng đọc sử dụng dịch vụ công cộng Microsoft Edge TTS; vui lòng tuân thủ các điều khoản dịch vụ của Microsoft.
+- Tested and optimized for: **TruyenFull**.
+- Other sites: StoryCast uses smart content detection (`Readability`) and automatically looks for *"Next chapter"* links, so most novel sites with standard HTML structure work well.
+- *Note:* Sites that require logging in, or that load content through complex client-side JavaScript, may not be extractable.
 
 ---
 
-## 📄 Giấy phép (License)
+## ⚖️ Disclaimer
 
-Dự án được phân phối dưới giấy phép **[MIT License](LICENSE)**.
+- This project is built for **learning, research and personal listening**.
+- Please respect the rights of authors, translators and the websites that publish the stories.
+- Voices are provided by the public Microsoft Edge TTS service; please follow Microsoft's terms of service.
+
+---
+
+## 📄 License
+
+Distributed under the **[MIT License](LICENSE)**.
