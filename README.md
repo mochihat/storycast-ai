@@ -174,7 +174,7 @@ npm start
 | `node: command not found` / `npm: command not found` | Node.js isn't installed. Follow [Requirements → Node.js](#1-nodejs--22130-required), then run `npm install` again. |
 | Browser says *"This site can't be reached"* at `localhost:3000` | The server isn't running. Check the terminal where you ran `npm run dev` for an error, and make sure it shows `✓ Ready`. |
 | `No such built-in module: node:sqlite` | Your Node.js is older than 22.13. Upgrade it (e.g. `nvm install 22`). |
-| `Port 3000 is in use` | Another app is using port 3000. Stop it, or open the alternative port Next.js prints in the terminal. |
+| `Cổng 3000 đang bị chiếm` | StoryCast always runs on port 3000 (two copies would share one database). Another copy is probably still running: press Ctrl+C in its terminal, or run `fuser -k 3000/tcp` (Linux) / `lsof -ti :3000 \| xargs kill` (macOS). |
 | `ExperimentalWarning: SQLite is an experimental feature` | Just a warning, not an error — the app works normally. |
 | The first Chinese story takes ~30 s to start | The convert dictionaries (~60 MB) are being downloaded into `data/dict/`. Later stories start in a few seconds. They also use ~250 MB of RAM while the server runs. |
 | Weird errors after `npm install` failed earlier | Delete the `node_modules` folder and run `npm install` again. |
