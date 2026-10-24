@@ -36,6 +36,11 @@ Completely **free** — no account sign-up and no third-party API key required!
     - **Google Dịch:** smoother sentences, but names come out in pinyin (*Lin Qian*).
     - **Không dịch:** keep the original and use the Chinese voice.
   - The story title, chapter titles and full chapter text are translated, then read by the Vietnamese voice. Vietnamese stories are left untouched.
+- 🌐 **Browse Chinese sites in Vietnamese (Đọc web):**
+  - Open **Đọc web** in the sidebar and paste any PO18 link — home page, rankings, a book page or a chapter.
+  - The whole page is converted to Vietnamese (same Convert engine, names in Hán Việt), and every link inside it opens converted too, so you can browse the site in Vietnamese.
+  - Each book or chapter page gets a **🎧 Tạo audio truyện này** button that opens *Thêm truyện* with the link filled in.
+  - The site's scripts are removed and the page is served with `script-src 'none'`, so nothing from the site runs inside StoryCast. Search forms that use POST (like PO18's) are not supported.
 - 🎙️ **Natural multilingual AI voices (Neural TTS):**
   - **Automatic language detection:** detects Vietnamese or Chinese from the chapter text.
   - **Vietnamese:** the expressive **Hoài My (`vi-VN-HoaiMyNeural`)** voice.
@@ -208,6 +213,7 @@ storycast-ai/
 │   ├── convert.ts        # VietPhrase "convert" with Hán Việt names
 │   ├── drm.ts            # Sec-MS-GEC v2 token required by Edge TTS
 │   ├── translate.ts      # Chooses convert or Google Translate
+│   ├── webpage.ts        # Converts a whole web page and routes its links back through StoryCast
 │   ├── tts.ts            # Edge TTS connection and text chunking
 │   └── worker.ts         # Background processing queue
 ├── types.ts              # TypeScript type definitions

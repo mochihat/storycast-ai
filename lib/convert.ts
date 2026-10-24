@@ -259,3 +259,17 @@ export async function convertToVietnamese(text: string): Promise<string> {
     .filter(Boolean)
     .join("\n");
 }
+
+// Converts many short snippets at once (the text pieces of a web page). Names are detected across all of them
+// together, so a name that repeats over the page is recognised even if each snippet mentions it once.
+export async function convertSnippets(snippets: string[]): Promise<string[]> {
+  const dict = await dictionaries();
+  const simplified = snippets.map((text) => [...text].map((ch) => dict.simplified.get(ch) ?? ch).join(""));
+  const found = detectNames(simplified.join("\n"), dict);
+  return simplified.map((text) =>
+    text
+      .split("\n")
+      .map((line) => convertLine(line, dict, found))
+      .join("\n")
+  );
+}

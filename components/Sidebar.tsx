@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { HiHome, HiPlus } from "react-icons/hi2";
+import { HiGlobeAlt, HiHome, HiPlus } from "react-icons/hi2";
 import { TbPlaylist } from "react-icons/tb";
 import { twMerge } from "tailwind-merge";
 
@@ -18,6 +18,7 @@ const Sidebar: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const routes = [
     { icon: HiHome, label: "Thư viện", href: "/", active: pathname === "/" },
     { icon: HiPlus, label: "Thêm truyện", href: "/new", active: pathname === "/new" },
+    { icon: HiGlobeAlt, label: "Đọc web", href: "/web", active: pathname === "/web" },
   ];
 
   return (

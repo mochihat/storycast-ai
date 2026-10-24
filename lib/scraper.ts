@@ -347,6 +347,18 @@ function siteHeaders(url: string): Record<string, string> {
 const PO18_LOGIN_ERROR =
   "PO18 yêu cầu đăng nhập. Hãy đăng nhập po18.tw trên trình duyệt, copy cookie vào biến PO18_COOKIE trong file .env.local rồi khởi động lại ứng dụng.";
 
+// A PO18 chapter page is only a shell; its text is loaded from /articlescontent/, which checks the Referer.
+export async function fetchPo18ChapterHtml(chapterUrl: string): Promise<string> {
+  const { origin, pathname } = new URL(chapterUrl);
+  const match = pathname.match(/^\/books\/(\d+)\/articles\/(\d+)/);
+  if (!match) return "";
+  const { html } = await fetchHtml(`${origin}/books/${match[1]}/articlescontent/${match[2]}`, {
+    Referer: chapterUrl,
+    "X-Requested-With": "XMLHttpRequest",
+  });
+  return html;
+}
+
 async function scrapePo18(url: string): Promise<PageInfo> {
   const origin = new URL(url).origin;
   const chapterMatch = new URL(url).pathname.match(/^\/books\/(\d+)\/articles\/(\d+)/);
@@ -398,7 +410,6 @@ async function scrapePo18(url: string): Promise<PageInfo> {
     };
   }
 
-  // The chapter page is only a shell; its text is loaded from /articlescontent/, which checks the Referer.
   let nextUrl: string | null = null;
   for (const a of doc.querySelectorAll("a[href]")) {
     const link = chapterLink(a);
@@ -407,11 +418,7 @@ async function scrapePo18(url: string): Promise<PageInfo> {
       break;
     }
   }
-  const content = await fetchHtml(`${origin}/books/${bookId}/articlescontent/${chapterMatch[2]}`, {
-    Referer: finalUrl,
-    "X-Requested-With": "XMLHttpRequest",
-  });
-  const frag = JSDOM.fragment(content.html);
+  const frag = JSDOM.fragment(await fetchPo18ChapterHtml(finalUrl));
   // PO18 stops copy-paste by slipping blockquotes of random letters between paragraphs.
   frag.querySelectorAll("script, style, noscript, iframe, blockquote.copyright").forEach((el) => el.remove());
   const heading = frag.querySelector("h1");

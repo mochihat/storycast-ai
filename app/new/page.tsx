@@ -1,15 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { use, useState } from "react";
 import { toast } from "react-hot-toast";
 import { BeatLoader } from "react-spinners";
 
 import { formatRate } from "@/lib/format";
 
-export default function NewStory() {
+export default function NewStory({ searchParams }: { searchParams: Promise<{ url?: string }> }) {
   const router = useRouter();
-  const [url, setUrl] = useState("");
+  // Prefilled from "Tạo audio truyện này" on a translated web page.
+  const [url, setUrl] = useState(use(searchParams).url ?? "");
   const [chapters, setChapters] = useState(20);
   const [rate, setRate] = useState(0);
   const [translator, setTranslator] = useState<"convert" | "google" | "none">("convert");
