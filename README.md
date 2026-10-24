@@ -137,7 +137,7 @@ Needed to merge chapters into a `.m4b` file.
 
 ## 🚀 Installation & Running
 
-> Make sure `node -v` works (see [Requirements](#-requirements)) before running these steps. Without Node.js, every `npm` command fails with `npm: command not found` and nothing will be running at `localhost:3000`.
+> Make sure `node -v` works (see [Requirements](#-requirements)) before running these steps. Without Node.js, every `npm` command fails with `npm: command not found` and nothing will be running at `localhost:3001`.
 
 ### 1. Get the source code
 ```bash
@@ -154,9 +154,11 @@ npm install
 ```bash
 npm run dev
 ```
-Wait until the terminal shows `✓ Ready`, then open **[http://localhost:3000](http://localhost:3000)** in your browser.
+Wait until the terminal shows `✓ Ready`, then open **[http://localhost:3001](http://localhost:3001)** in your browser.
 
 Keep this terminal open — closing it (or pressing `Ctrl+C`) stops the server.
+
+> StoryCast always runs on port **3001** (both `npm run dev` and `npm start`). If that port is already taken — usually by an older StoryCast you forgot to stop — it does not move to another port; it stops and prints `Cổng 3001 đang bị chiếm` with how to free it. See [Troubleshooting](#-troubleshooting).
 
 ### 4. Build and run in production mode (recommended)
 For smoother performance and lower memory usage:
@@ -172,9 +174,9 @@ npm start
 | Symptom | Cause & fix |
 |---|---|
 | `node: command not found` / `npm: command not found` | Node.js isn't installed. Follow [Requirements → Node.js](#1-nodejs--22130-required), then run `npm install` again. |
-| Browser says *"This site can't be reached"* at `localhost:3000` | The server isn't running. Check the terminal where you ran `npm run dev` for an error, and make sure it shows `✓ Ready`. |
+| Browser says *"This site can't be reached"* at `localhost:3001` | The server isn't running. Check the terminal where you ran `npm run dev` for an error, and make sure it shows `✓ Ready`. |
 | `No such built-in module: node:sqlite` | Your Node.js is older than 22.13. Upgrade it (e.g. `nvm install 22`). |
-| `Cổng 3000 đang bị chiếm` | StoryCast always runs on port 3000 (two copies would share one database). Another copy is probably still running: press Ctrl+C in its terminal, or run `fuser -k 3000/tcp` (Linux) / `lsof -ti :3000 \| xargs kill` (macOS). |
+| `Cổng 3001 đang bị chiếm` | StoryCast always runs on port 3001 (two copies would share one database). Another copy is probably still running: press Ctrl+C in its terminal, or run `fuser -k 3001/tcp` (Linux) / `lsof -ti :3001 \| xargs kill` (macOS). |
 | `ExperimentalWarning: SQLite is an experimental feature` | Just a warning, not an error — the app works normally. |
 | The first Chinese story takes ~30 s to start | The convert dictionaries (~60 MB) are being downloaded into `data/dict/`. Later stories start in a few seconds. They also use ~250 MB of RAM while the server runs. |
 | Weird errors after `npm install` failed earlier | Delete the `node_modules` folder and run `npm install` again. |

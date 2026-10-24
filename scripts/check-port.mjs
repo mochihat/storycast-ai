@@ -1,8 +1,8 @@
-// StoryCast always runs on port 3000. Two servers on one database would both run the background worker, so
-// instead of letting Next.js drift to 3001 we stop here and say what is holding the port.
+// StoryCast always runs on port 3001. Two servers on one database would both run the background worker, so
+// instead of letting Next.js drift to another port we stop here and say what is holding the port.
 import net from "node:net";
 
-const PORT = 3000;
+const PORT = 3001;
 
 const server = net.createServer();
 server.once("error", (err) => {
