@@ -16,6 +16,8 @@ export interface Story {
   target_chapters: number;
   // Reading speed in percent relative to normal, e.g. -10 or +20.
   rate: number;
+  // How Chinese chapters are translated to Vietnamese when fetched; null keeps the original.
+  translator: "convert" | "google" | null;
   status: StoryStatus;
   error: string | null;
   created_at: string;

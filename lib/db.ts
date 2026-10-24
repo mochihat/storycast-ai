@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
+import type { Translator } from "./translate";
 import type { Chapter, ChapterStatus, Story, StoryStatus } from "@/types";
 
 // Everything lives on the local disk: one SQLite file + one folder of mp3s.
@@ -50,6 +51,12 @@ function open(): DatabaseSync {
       UNIQUE (story_id, idx)
     );
   `);
+  // Added after the first release: how Chinese chapters are translated to Vietnamese ("convert" or "google"),
+  // or NULL to keep the original text.
+  const storyColumns = db.prepare(`PRAGMA table_info(stories)`).all() as { name: string }[];
+  if (!storyColumns.some((c) => c.name === "translator")) {
+    db.exec(`ALTER TABLE stories ADD COLUMN translator TEXT`);
+  }
   return db;
 }
 
@@ -87,11 +94,12 @@ export function createStory(input: {
   next_url: string | null;
   target_chapters: number;
   rate: number;
+  translator: Translator | null;
 }): number {
   const result = db()
     .prepare(
-      `INSERT INTO stories (title, author, cover_url, source_url, next_url, target_chapters, rate)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO stories (title, author, cover_url, source_url, next_url, target_chapters, rate, translator)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       input.title,
@@ -100,7 +108,8 @@ export function createStory(input: {
       input.source_url,
       input.next_url,
       input.target_chapters,
-      input.rate
+      input.rate,
+      input.translator
     );
   return Number(result.lastInsertRowid);
 }

@@ -30,6 +30,12 @@ Completely **free** — no account sign-up and no third-party API key required!
   - Automatically extracts chapter content using `@mozilla/readability` and `jsdom`.
   - Works with both Vietnamese novel sites (TruyenFull, Tangthuvien...) and Chinese ones (69shu, Biquge...).
   - Automatically finds the *"Next chapter"* button (`Chương sau`, `下一章`) and strips noise, ads and anti-copy characters.
+- 🌏 **Chinese → Vietnamese translation (free):**
+  - Paste a link from PO18 or any Chinese novel site and pick how to translate it:
+    - **Convert (default):** the classic Vietnamese "convert" style — longest-match lookup in the community VietPhrase dictionaries, with character names in Hán Việt (林浅 → *Lâm Thiển*). Traditional Chinese is simplified first (OpenCC) so it matches the dictionaries. Runs offline after a one-time ~60 MB dictionary download into `data/dict/`.
+    - **Google Dịch:** smoother sentences, but names come out in pinyin (*Lin Qian*).
+    - **Không dịch:** keep the original and use the Chinese voice.
+  - The story title, chapter titles and full chapter text are translated, then read by the Vietnamese voice. Vietnamese stories are left untouched.
 - 🎙️ **Natural multilingual AI voices (Neural TTS):**
   - **Automatic language detection:** detects Vietnamese or Chinese from the chapter text.
   - **Vietnamese:** the expressive **Hoài My (`vi-VN-HoaiMyNeural`)** voice.
@@ -165,6 +171,7 @@ npm start
 | `No such built-in module: node:sqlite` | Your Node.js is older than 22.13. Upgrade it (e.g. `nvm install 22`). |
 | `Port 3000 is in use` | Another app is using port 3000. Stop it, or open the alternative port Next.js prints in the terminal. |
 | `ExperimentalWarning: SQLite is an experimental feature` | Just a warning, not an error — the app works normally. |
+| The first Chinese story takes ~30 s to start | The convert dictionaries (~60 MB) are being downloaded into `data/dict/`. Later stories start in a few seconds. They also use ~250 MB of RAM while the server runs. |
 | Weird errors after `npm install` failed earlier | Delete the `node_modules` folder and run `npm install` again. |
 
 ---
@@ -198,6 +205,9 @@ storycast-ai/
 │   ├── book.ts           # Builds the m4b file and chapter metadata with ffmpeg
 │   ├── db.ts             # node:sqlite connection and queries
 │   ├── scraper.ts        # Chapter extraction and anti-copy cleanup
+│   ├── convert.ts        # VietPhrase "convert" with Hán Việt names
+│   ├── drm.ts            # Sec-MS-GEC v2 token required by Edge TTS
+│   ├── translate.ts      # Chooses convert or Google Translate
 │   ├── tts.ts            # Edge TTS connection and text chunking
 │   └── worker.ts         # Background processing queue
 ├── types.ts              # TypeScript type definitions
@@ -220,9 +230,24 @@ All data created while using the app lives in the `data/` folder:
 
 ## 🌐 Supported Sites
 
-- Tested and optimized for: **TruyenFull**.
+- Tested and optimized for: **TruyenFull**, **Wattpad**.
+- **PO18 (po18.tw):** every book page requires a logged-in account, so StoryCast uses your own browser session:
+  1. Log in at [po18.tw](https://www.po18.tw) in your browser.
+  2. Open DevTools (F12) → **Network**, reload the page, click the first request and copy the whole value of the `Cookie` request header.
+  3. Create a file `.env.local` in the project folder containing `PO18_COOKIE=<the value you copied>`, then restart the server.
+  4. Paste the book link (`https://www.po18.tw/books/<id>`) or a chapter link (`.../books/<id>/articles/<id>`).
+  - Only chapters your account can read (free chapters, or paid chapters you have bought) can be fetched.
 - Other sites: StoryCast uses smart content detection (`Readability`) and automatically looks for *"Next chapter"* links, so most novel sites with standard HTML structure work well.
 - *Note:* Sites that require logging in, or that load content through complex client-side JavaScript, may not be extractable.
+
+---
+
+### Dictionaries used by Convert
+
+- VietPhrase, Name, Pronouns and ChinesePhienAmWords from [ducbui0/tong-hop-tu-dien](https://github.com/ducbui0/tong-hop-tu-dien) — community QuickTranslator dictionaries; no license is stated.
+- Traditional → simplified table `TSCharacters.txt` from [OpenCC](https://github.com/BYVoid/OpenCC) (Apache-2.0).
+
+Both are pinned to a specific commit in `lib/convert.ts` and downloaded at runtime; they are not part of this repository.
 
 ---
 

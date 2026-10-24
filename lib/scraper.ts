@@ -328,7 +328,123 @@ async function scrapeWattpad(url: string): Promise<PageInfo> {
   return parsePage(html, finalUrl);
 }
 
-export async function fetchHtml(url: string): Promise<{ html: string; finalUrl: string }> {
+export function isPo18Url(url: string): boolean {
+  try {
+    return /(?:^|\.)po18\.tw$/i.test(new URL(url).hostname);
+  } catch {
+    return false;
+  }
+}
+
+// PO18 shows an "are you 18?" page without po18Limit=1, and needs a logged-in session for every book page.
+// The session comes from the user's own browser login, set as PO18_COOKIE in .env.local.
+function siteHeaders(url: string): Record<string, string> {
+  if (!isPo18Url(url)) return {};
+  const login = process.env.PO18_COOKIE?.trim();
+  return { Cookie: login ? `po18Limit=1; ${login}` : "po18Limit=1" };
+}
+
+const PO18_LOGIN_ERROR =
+  "PO18 yêu cầu đăng nhập. Hãy đăng nhập po18.tw trên trình duyệt, copy cookie vào biến PO18_COOKIE trong file .env.local rồi khởi động lại ứng dụng.";
+
+async function scrapePo18(url: string): Promise<PageInfo> {
+  const origin = new URL(url).origin;
+  const chapterMatch = new URL(url).pathname.match(/^\/books\/(\d+)\/articles\/(\d+)/);
+  const bookMatch = new URL(url).pathname.match(/^\/books\/(\d+)/);
+  if (!bookMatch) {
+    const { html, finalUrl } = await fetchHtml(url);
+    return parsePage(html, finalUrl);
+  }
+  const bookId = bookMatch[1];
+
+  // The chapter list doubles as the overview: it has the title, author, cover and the first chapter link.
+  const pageUrl = chapterMatch ? url : `${origin}/books/${bookId}/articles`;
+  const { html, finalUrl } = await fetchHtml(pageUrl);
+  if (/members\.po18\.tw/i.test(finalUrl)) throw new Error(PO18_LOGIN_ERROR);
+
+  const doc = new JSDOM(html, { url: finalUrl, virtualConsole: new VirtualConsole() }).window.document;
+  const meta = (prop: string) => doc.querySelector(`meta[property="${prop}"]`)?.getAttribute("content")?.trim() || null;
+  // Chapter pages have no book header, only a <title> like "第2章：… < 書名(作者)｜PO18情愛原創".
+  const titleMatch = doc.title.match(/<\s*(.+)\(([^()]*)\)\s*｜/);
+  const storyTitle =
+    firstText(doc, [".book_name", ".bookname", "h1.book_name", ".book-name"]) ||
+    titleMatch?.[1].trim() ||
+    meta("og:title") ||
+    doc.title.split(/[-|｜]/)[0].trim() ||
+    null;
+  const author = firstText(doc, [".book_author", ".author a", ".author"]) || titleMatch?.[2].trim() || null;
+  const coverUrl = doc.querySelector(".book_cover img, .cover img")?.getAttribute("src") || meta("og:image");
+  const chapterLink = (a: Element) => {
+    const link = resolveLink(a.getAttribute("href"), finalUrl);
+    return link && new RegExp(`/books/${bookId}/articles/\\d+`).test(link) ? link : null;
+  };
+
+  if (!chapterMatch) {
+    let firstChapterUrl: string | null = null;
+    for (const a of doc.querySelectorAll("a[href]")) {
+      firstChapterUrl = chapterLink(a);
+      if (firstChapterUrl) break;
+    }
+    return {
+      url: finalUrl,
+      storyTitle: storyTitle ? fixText(storyTitle) : null,
+      chapterTitle: null,
+      author: author ? fixText(author) : null,
+      coverUrl,
+      text: "",
+      nextUrl: null,
+      firstChapterUrl,
+      isChapterUrl: false,
+    };
+  }
+
+  // The chapter page is only a shell; its text is loaded from /articlescontent/, which checks the Referer.
+  let nextUrl: string | null = null;
+  for (const a of doc.querySelectorAll("a[href]")) {
+    const link = chapterLink(a);
+    if (link && !sameUrl(link, finalUrl) && NEXT_TEXT.test(`${a.textContent ?? ""} ${a.getAttribute("title") ?? ""}`)) {
+      nextUrl = link;
+      break;
+    }
+  }
+  const content = await fetchHtml(`${origin}/books/${bookId}/articlescontent/${chapterMatch[2]}`, {
+    Referer: finalUrl,
+    "X-Requested-With": "XMLHttpRequest",
+  });
+  const frag = JSDOM.fragment(content.html);
+  // PO18 stops copy-paste by slipping blockquotes of random letters between paragraphs.
+  frag.querySelectorAll("script, style, noscript, iframe, blockquote.copyright").forEach((el) => el.remove());
+  const heading = frag.querySelector("h1");
+  let chapterTitle = heading?.textContent?.replace(/\s+/g, " ").trim() || firstText(doc, [".c_l h1", "h1"]);
+  heading?.remove();
+  let text = cleanText(elementToText(frag));
+  if (text.length < 200) {
+    text = parsePage(html, finalUrl).text;
+  }
+  if (text.length < 50) {
+    throw new Error(`Không đọc được chương PO18 ${finalUrl}. Có thể đây là chương có phí mà tài khoản của bạn chưa mua.`);
+  }
+  if (chapterTitle && storyTitle && chapterTitle.startsWith(storyTitle)) {
+    chapterTitle = chapterTitle.slice(storyTitle.length).replace(/^\s*[-:|]\s*/, "").trim() || chapterTitle;
+  }
+
+  return {
+    url: finalUrl,
+    storyTitle: storyTitle ? fixText(storyTitle) : null,
+    chapterTitle: chapterTitle ? fixText(chapterTitle) : null,
+    author: author ? fixText(author) : null,
+    coverUrl,
+    text,
+    nextUrl,
+    firstChapterUrl: null,
+    isChapterUrl: true,
+  };
+}
+
+export async function fetchHtml(
+  url: string,
+  extraHeaders: Record<string, string> = {}
+): Promise<{ html: string; finalUrl: string }> {
   let lastError: unknown;
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
@@ -337,6 +453,8 @@ export async function fetchHtml(url: string): Promise<{ html: string; finalUrl: 
           "User-Agent": USER_AGENT,
           "Accept-Language": "vi-VN,vi;q=0.9,zh-CN,zh;q=0.8,en;q=0.7",
           Accept: "text/html,application/xhtml+xml",
+          ...siteHeaders(url),
+          ...extraHeaders,
         },
         redirect: "follow",
         signal: AbortSignal.timeout(20_000),
@@ -354,6 +472,9 @@ export async function fetchHtml(url: string): Promise<{ html: string; finalUrl: 
 export async function scrapePage(url: string): Promise<PageInfo> {
   if (isWattpadUrl(url)) {
     return scrapeWattpad(url);
+  }
+  if (isPo18Url(url)) {
+    return scrapePo18(url);
   }
   const { html, finalUrl } = await fetchHtml(url);
   return parsePage(html, finalUrl);

@@ -18,6 +18,7 @@ import {
   updateStory,
 } from "./db";
 import { scrapePage } from "./scraper";
+import { translateText } from "./translate";
 import { StoppedError, synthesize } from "./tts";
 import type { Chapter } from "@/types";
 
@@ -123,7 +124,17 @@ async function processStory(storyId: number) {
       updateStory(storyId, { next_url: null });
       break;
     }
-    insertChapter(storyId, page.chapterTitle || `Chương ${story.chapter_count + 1}`, page.url, page.text);
+    const title = page.chapterTitle || `Chương ${story.chapter_count + 1}`;
+    if (story.translator) {
+      insertChapter(
+        storyId,
+        await translateText(title, story.translator),
+        page.url,
+        await translateText(page.text, story.translator)
+      );
+    } else {
+      insertChapter(storyId, title, page.url, page.text);
+    }
     updateStory(storyId, { next_url: page.nextUrl });
     // Be gentle with the story site.
     await sleep(800);

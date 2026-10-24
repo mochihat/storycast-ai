@@ -12,6 +12,7 @@ export default function NewStory() {
   const [url, setUrl] = useState("");
   const [chapters, setChapters] = useState(20);
   const [rate, setRate] = useState(0);
+  const [translator, setTranslator] = useState<"convert" | "google" | "none">("convert");
   const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e: React.FormEvent) => {
@@ -21,7 +22,7 @@ export default function NewStory() {
       const res = await fetch("/api/stories", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, chapters, rate }),
+        body: JSON.stringify({ url, chapters, rate, translator }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? "Có lỗi xảy ra");
@@ -48,11 +49,11 @@ export default function NewStory() {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={loading}
-            placeholder="https://www.wattpad.com/... hoặc https://truyenfull.today/..."
+            placeholder="https://www.po18.tw/books/... hoặc https://truyenfull.today/..."
             className="rounded-md bg-neutral-700 px-3 py-3 text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
           <span className="text-sm text-neutral-400">
-            Dán link của <b>chương muốn bắt đầu nghe</b> (ví dụ chương 1), hoặc link trang giới thiệu truyện trên Wattpad, Truyenfull, v.v. Ứng dụng
+            Dán link của <b>chương muốn bắt đầu nghe</b> (ví dụ chương 1), hoặc link trang giới thiệu truyện trên PO18, Wattpad, Truyenfull, v.v. Ứng dụng
             sẽ tự động tải toàn bộ nội dung chương (bao gồm tất cả các trang) và đi tiếp các chương sau.
           </span>
         </label>
@@ -73,6 +74,31 @@ export default function NewStory() {
             sau.
           </span>
         </label>
+
+        <fieldset className="flex flex-col gap-y-2" disabled={loading}>
+          <legend className="font-medium text-white mb-2">Truyện tiếng Trung (PO18, 69shu, Biquge…)</legend>
+          {(
+            [
+              ["convert", "Convert (Hán Việt + VietPhrase)", "Kiểu truyện convert: tên nhân vật đọc Hán Việt (Lâm Thiển), dịch bằng từ điển VietPhrase. Lần đầu dùng sẽ tải từ điển khoảng 60 MB."],
+              ["google", "Google Dịch", "Câu văn mượt hơn nhưng tên nhân vật ra dạng pinyin (Lin Qian)."],
+              ["none", "Không dịch", "Nghe nguyên bản bằng giọng tiếng Trung Xiaoxiao."],
+            ] as const
+          ).map(([value, label, hint]) => (
+            <label key={value} className="flex items-start gap-x-3">
+              <input
+                type="radio"
+                name="translator"
+                checked={translator === value}
+                onChange={() => setTranslator(value)}
+                className="mt-1 h-4 w-4 accent-emerald-500"
+              />
+              <span className="flex flex-col">
+                <span className="text-white">{label}</span>
+                <span className="text-sm text-neutral-400">{hint}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
 
         <label className="flex flex-col gap-y-2">
           <span className="font-medium text-white">Tốc độ giọng đọc: {formatRate(rate)}</span>
@@ -98,7 +124,9 @@ export default function NewStory() {
         >
           {loading ? <BeatLoader size={10} color="#000" /> : "Tạo truyện audio"}
         </button>
-        {loading && <p className="text-sm text-neutral-400">Đang đọc trang truyện…</p>}
+        {loading && (
+          <p className="text-sm text-neutral-400">{translator === "none" ? "Đang đọc trang truyện…" : "Đang đọc và dịch chương đầu…"}</p>
+        )}
       </form>
     </div>
   );
