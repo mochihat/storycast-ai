@@ -2,6 +2,8 @@ import "server-only";
 
 import { MsEdgeTTS, OUTPUT_FORMAT } from "msedge-tts";
 
+import { generateSecMsGec, SEC_MS_GEC_VERSION, TRUSTED_CLIENT_TOKEN, WSS_URL } from "./drm";
+
 // Microsoft Edge's free neural voices.
 export const VOICE_VI = "vi-VN-HoaiMyNeural";
 export const VOICE_ZH = "zh-CN-XiaoxiaoNeural"; // Giọng nữ đọc truyện Trung Quốc tự nhiên nhất
@@ -21,6 +23,12 @@ export function detectVoice(text: string): string {
   }
   return VOICE_VI;
 }
+
+// msedge-tts still signs connections with the old v1 token, which Edge now answers with 403.
+// getSynthUrl is private in its typings, but it is the one place the URL is built.
+(MsEdgeTTS as unknown as { getSynthUrl: () => Promise<string> }).getSynthUrl = async () =>
+  `${WSS_URL}?TrustedClientToken=${TRUSTED_CLIENT_TOKEN}&Sec-MS-GEC=${generateSecMsGec()}` +
+  `&Sec-MS-GEC-Version=${SEC_MS_GEC_VERSION}&ConnectionId=${crypto.randomUUID().replace(/-/g, "")}`;
 
 const FORMAT = OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3;
 const BYTES_PER_SECOND = 48_000 / 8;
@@ -109,7 +117,7 @@ export async function synthesize(
             lastError = err;
             tts.close();
             await new Promise((r) => setTimeout(r, 2000 * (attempt + 1)));
-            tts = await connect();
+            tts = await connect(selectedVoice);
           }
         }
         if (lastError) throw lastError;
