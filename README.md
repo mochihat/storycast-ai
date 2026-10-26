@@ -39,6 +39,7 @@ Completely **free** — no account sign-up and no third-party API key required!
 - 🌐 **Browse Chinese sites in Vietnamese (Đọc web):**
   - Open **Đọc web** in the sidebar and paste any PO18 link — home page, rankings, a book page or a chapter.
   - The whole page is converted to Vietnamese (same Convert engine, names in Hán Việt), and every link inside it opens converted too, so you can browse the site in Vietnamese.
+  - Switch between **Tiếng Việt**, **Tiếng Trung** (the original page) and **Song song** (both side by side; following a link in one side takes the other side to the same page). `/web?url=…&mode=both` opens straight in side-by-side mode.
   - Each book or chapter page gets a **🎧 Tạo audio truyện này** button that opens *Thêm truyện* with the link filled in.
   - The site's scripts are removed and the page is served with `script-src 'none'`, so nothing from the site runs inside StoryCast. Search forms that use POST (like PO18's) are not supported.
 - 🎙️ **Natural multilingual AI voices (Neural TTS):**

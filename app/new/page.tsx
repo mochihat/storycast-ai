@@ -50,11 +50,11 @@ export default function NewStory({ searchParams }: { searchParams: Promise<{ url
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             disabled={loading}
-            placeholder="https://www.po18.tw/books/... hoặc https://truyenfull.today/..."
+            placeholder="Dán link truyện tiếng Trung hoặc tiếng Việt"
             className="rounded-md bg-neutral-700 px-3 py-3 text-white placeholder:text-neutral-400 focus:outline-none focus:ring-2 focus:ring-emerald-500"
           />
           <span className="text-sm text-neutral-400">
-            Dán link của <b>chương muốn bắt đầu nghe</b> (ví dụ chương 1), hoặc link trang giới thiệu truyện trên PO18, Wattpad, Truyenfull, v.v. Ứng dụng
+            Dán link của <b>chương muốn bắt đầu nghe</b> (ví dụ chương 1), hoặc link trang giới thiệu truyện tiếng Trung, Wattpad, Truyenfull, v.v. Ứng dụng
             sẽ tự động tải toàn bộ nội dung chương (bao gồm tất cả các trang) và đi tiếp các chương sau.
           </span>
         </label>
@@ -77,7 +77,7 @@ export default function NewStory({ searchParams }: { searchParams: Promise<{ url
         </label>
 
         <fieldset className="flex flex-col gap-y-2" disabled={loading}>
-          <legend className="font-medium text-white mb-2">Truyện tiếng Trung (PO18, 69shu, Biquge…)</legend>
+          <legend className="font-medium text-white mb-2">Truyện tiếng Trung</legend>
           {(
             [
               ["convert", "Convert (Hán Việt + VietPhrase)", "Kiểu truyện convert: tên nhân vật đọc Hán Việt (Lâm Thiển), dịch bằng từ điển VietPhrase. Lần đầu dùng sẽ tải từ điển khoảng 60 MB."],

@@ -24,10 +24,11 @@ export async function GET(request: NextRequest) {
   const params = request.nextUrl.searchParams;
   let target = params.get("url") ?? "";
   // A search form submitted from a translated page: rebuild the site's own search URL.
+  const lang = params.get("lang") === "zh" ? "zh" : "vi";
   const formAction = params.get("form");
   if (formAction) {
     const url = new URL(formAction);
-    for (const [key, value] of params) if (key !== "form") url.searchParams.append(key, value);
+    for (const [key, value] of params) if (key !== "form" && key !== "lang") url.searchParams.append(key, value);
     target = url.toString();
   }
 
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
   try {
     const proxyBase = new URL("/api/web", request.nextUrl.origin).toString();
     const storyBase = new URL("/new", request.nextUrl.origin).toString();
-    return new Response(await translatePage(url.toString(), proxyBase, storyBase), { headers: PAGE_HEADERS });
+    return new Response(await translatePage(url.toString(), proxyBase, storyBase, lang), { headers: PAGE_HEADERS });
   } catch (err) {
     return errorPage(err instanceof Error ? err.message : String(err), 502);
   }

@@ -7,12 +7,15 @@ import { fetchHtml, fetchPo18ChapterHtml, isPo18Url } from "./scraper";
 
 // Browses a Chinese website in Vietnamese: fetches the page (with the PO18 login when it is PO18), converts every
 // piece of visible text, and points its links back through StoryCast so the next page is converted too.
+// The same page can also be shown untranslated ("zh"), to compare it with the original side by side.
+
+export type PageLanguage = "vi" | "zh";
 
 const CJK = /[㐀-䶿一-鿿豈-﫿]/;
 const TRANSLATED_ATTRIBUTES = ["title", "alt", "placeholder", "aria-label"];
 
-export function proxiedUrl(target: string, proxyBase: string): string {
-  return `${proxyBase}?url=${encodeURIComponent(target)}`;
+export function proxiedUrl(target: string, proxyBase: string, lang: PageLanguage = "vi"): string {
+  return `${proxyBase}?url=${encodeURIComponent(target)}${lang === "zh" ? "&lang=zh" : ""}`;
 }
 
 function absolute(href: string | null, base: string): string | null {
@@ -25,7 +28,12 @@ function absolute(href: string | null, base: string): string | null {
   }
 }
 
-export async function translatePage(url: string, proxyBase: string, storyBase: string): Promise<string> {
+export async function translatePage(
+  url: string,
+  proxyBase: string,
+  storyBase: string,
+  lang: PageLanguage = "vi"
+): Promise<string> {
   const { html, finalUrl } = await fetchHtml(url);
   if (/members\.po18\.tw/i.test(new URL(finalUrl).hostname) && /login/i.test(finalUrl)) {
     throw new Error(
@@ -71,7 +79,7 @@ export async function translatePage(url: string, proxyBase: string, storyBase: s
   }
   for (const a of doc.querySelectorAll("a[href]")) {
     const href = absolute(a.getAttribute("href"), finalUrl);
-    if (href) a.setAttribute("href", proxiedUrl(href, proxyBase));
+    if (href) a.setAttribute("href", proxiedUrl(href, proxyBase, lang));
     else a.removeAttribute("href");
     a.removeAttribute("target");
   }
@@ -83,13 +91,58 @@ export async function translatePage(url: string, proxyBase: string, storyBase: s
       const hidden = doc.createElement("input");
       Object.assign(hidden, { type: "hidden", name: "form", value: action });
       form.prepend(hidden);
+      if (lang === "zh") {
+        const keepLang = doc.createElement("input");
+        Object.assign(keepLang, { type: "hidden", name: "lang", value: "zh" });
+        form.prepend(keepLang);
+      }
     } else {
       form.removeAttribute("action");
     }
   }
 
-  // Collect every visible piece of Chinese text, convert them in one go, and put them back.
-  const walker = doc.createTreeWalker(doc.documentElement, dom.window.NodeFilter.SHOW_TEXT);
+  if (lang === "vi") await convertDocument(doc, dom.window);
+
+  doc.documentElement.setAttribute("lang", lang === "vi" ? "vi" : "zh");
+  const meta = doc.createElement("meta");
+  meta.setAttribute("charset", "utf-8");
+  doc.head.prepend(meta);
+
+  // A slim bar on top: where this page really is, and a shortcut to turn the story into audio.
+  const bar = doc.createElement("div");
+  bar.setAttribute(
+    "style",
+    "position:sticky;top:0;z-index:2147483647;display:flex;flex-wrap:wrap;gap:12px;align-items:center;" +
+      "padding:8px 16px;background:#064e3b;color:#fff;font:14px/1.4 system-ui,sans-serif"
+  );
+  const label = doc.createElement("span");
+  label.textContent = lang === "vi" ? "Bản convert của" : "Bản gốc tiếng Trung:";
+  const original = doc.createElement("a");
+  original.textContent = new URL(finalUrl).hostname + new URL(finalUrl).pathname;
+  original.setAttribute("href", finalUrl);
+  original.setAttribute("target", "_blank");
+  original.setAttribute("rel", "noreferrer");
+  original.setAttribute("style", "color:#6ee7b7;word-break:break-all");
+  bar.append(label, original);
+  if (/^\/books\/\d+/.test(new URL(finalUrl).pathname) || !isPo18Url(finalUrl)) {
+    const audio = doc.createElement("a");
+    audio.textContent = "🎧 Tạo audio truyện này";
+    audio.setAttribute("href", `${storyBase}?url=${encodeURIComponent(finalUrl)}`);
+    audio.setAttribute("target", "_top");
+    audio.setAttribute(
+      "style",
+      "margin-left:auto;padding:4px 12px;border-radius:999px;background:#10b981;color:#000;font-weight:600;text-decoration:none"
+    );
+    bar.append(audio);
+  }
+  doc.body.prepend(bar);
+
+  return dom.serialize();
+}
+
+// Collects every visible piece of Chinese text, converts them in one go, and puts them back.
+async function convertDocument(doc: Document, window: JSDOM["window"]) {
+  const walker = doc.createTreeWalker(doc.documentElement, window.NodeFilter.SHOW_TEXT);
   const textNodes: Text[] = [];
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
     const parent = node.parentElement?.tagName;
@@ -115,40 +168,4 @@ export async function translatePage(url: string, proxyBase: string, storyBase: s
     node.nodeValue = before + converted[i] + after;
   });
   attributes.forEach(({ el, name }, i) => el.setAttribute(name, converted[textNodes.length + i]));
-
-  doc.documentElement.setAttribute("lang", "vi");
-  const meta = doc.createElement("meta");
-  meta.setAttribute("charset", "utf-8");
-  doc.head.prepend(meta);
-
-  // A slim bar on top: where this page really is, and a shortcut to turn the story into audio.
-  const bar = doc.createElement("div");
-  bar.setAttribute(
-    "style",
-    "position:sticky;top:0;z-index:2147483647;display:flex;flex-wrap:wrap;gap:12px;align-items:center;" +
-      "padding:8px 16px;background:#064e3b;color:#fff;font:14px/1.4 system-ui,sans-serif"
-  );
-  const label = doc.createElement("span");
-  label.textContent = "Bản convert của";
-  const original = doc.createElement("a");
-  original.textContent = new URL(finalUrl).hostname + new URL(finalUrl).pathname;
-  original.setAttribute("href", finalUrl);
-  original.setAttribute("target", "_blank");
-  original.setAttribute("rel", "noreferrer");
-  original.setAttribute("style", "color:#6ee7b7;word-break:break-all");
-  bar.append(label, original);
-  if (/^\/books\/\d+/.test(new URL(finalUrl).pathname) || !isPo18Url(finalUrl)) {
-    const audio = doc.createElement("a");
-    audio.textContent = "🎧 Tạo audio truyện này";
-    audio.setAttribute("href", `${storyBase}?url=${encodeURIComponent(finalUrl)}`);
-    audio.setAttribute("target", "_top");
-    audio.setAttribute(
-      "style",
-      "margin-left:auto;padding:4px 12px;border-radius:999px;background:#10b981;color:#000;font-weight:600;text-decoration:none"
-    );
-    bar.append(audio);
-  }
-  doc.body.prepend(bar);
-
-  return dom.serialize();
 }
