@@ -167,6 +167,24 @@ npm run build
 npm start
 ```
 
+### 5. Run in the background, always on (Linux)
+
+To have StoryCast start by itself when you log in — no terminal needed, just open **http://localhost:3001** — install it as a background service:
+
+```bash
+./scripts/install-service.sh
+```
+
+| What | Command |
+|---|---|
+| After pulling new code (rebuild + restart) | `./scripts/install-service.sh` |
+| Restart (e.g. after changing `.env.local`) | `systemctl --user restart storycast` |
+| Stop / start | `systemctl --user stop storycast` / `systemctl --user start storycast` |
+| Turn off auto-start | `systemctl --user disable --now storycast` |
+| See its log | `journalctl --user -u storycast -f` |
+
+> The service uses port 3001, so `npm run dev` will say the port is taken while it runs. Stop the service first (`systemctl --user stop storycast`) if you want to develop.
+
 ---
 
 ## 🩺 Troubleshooting
