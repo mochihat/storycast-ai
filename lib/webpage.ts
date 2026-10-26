@@ -34,7 +34,7 @@ export async function translatePage(
   storyBase: string,
   lang: PageLanguage = "vi"
 ): Promise<string> {
-  const { html, finalUrl } = await fetchHtml(url);
+  const { html, finalUrl } = await fetchHtml(po18TagUrl(url));
   if (/members\.po18\.tw/i.test(new URL(finalUrl).hostname) && /login/i.test(finalUrl)) {
     throw new Error(
       "PO18 yêu cầu đăng nhập. Cookie trong .env.local đã hết hạn hoặc chưa có: hãy lấy cookie mới rồi khởi động lại ứng dụng."
@@ -68,6 +68,10 @@ export async function translatePage(
     }
   }
 
+  if (isPo18Url(finalUrl) && /^\/tags(\/viewindex)?\/?$/.test(new URL(finalUrl).pathname)) {
+    po18TagFilter(doc, finalUrl, proxyBase, lang);
+  }
+
   // Images, stylesheets and fonts still load straight from the site; links come back through StoryCast.
   for (const el of doc.querySelectorAll("[src]")) {
     const src = absolute(el.getAttribute("src"), finalUrl);
@@ -84,7 +88,7 @@ export async function translatePage(
     a.removeAttribute("target");
   }
   // GET forms (searches on most sites) keep working through StoryCast; other forms cannot be replayed.
-  for (const form of doc.querySelectorAll("form")) {
+  for (const form of doc.querySelectorAll("form:not([data-storycast])")) {
     const action = absolute(form.getAttribute("action") || finalUrl, finalUrl);
     if ((form.getAttribute("method") ?? "get").toLowerCase() === "get" && action) {
       form.setAttribute("action", proxyBase);
@@ -138,6 +142,61 @@ export async function translatePage(
   doc.body.prepend(bar);
 
   return dom.serialize();
+}
+
+// PO18's tag search filters with a script (ticking a box reloads the list from /tags/subbooks). Scripts are
+// removed here, so the boxes become a plain form instead: it submits the ticked tags as ?tag=30&tag=68, which
+// po18TagUrl turns into the site's own filtered page, /tags?id=30_68_.
+function po18TagUrl(url: string): string {
+  const parsed = new URL(url);
+  const tags = parsed.searchParams.getAll("tag").filter((tag) => /^\d+$/.test(tag));
+  if (!isPo18Url(url) || !/^\/tags(\/viewindex)?\/?$/.test(parsed.pathname) || tags.length === 0) return url;
+  return `${parsed.origin}/tags?id=${tags.join("_")}_`;
+}
+
+function po18TagFilter(doc: Document, pageUrl: string, proxyBase: string, lang: PageLanguage) {
+  const box = doc.querySelector(".selecttags .T_wrapbox");
+  if (!box) return;
+  const selected = new Set((new URL(pageUrl).searchParams.get("id") ?? "").split("_").filter(Boolean));
+  const origin = new URL(pageUrl).origin;
+
+  const form = doc.createElement("form");
+  form.setAttribute("method", "get");
+  form.setAttribute("action", proxyBase);
+  form.setAttribute("data-storycast", ""); // already points at StoryCast: the form pass below leaves it alone
+  const hidden = (name: string, value: string) => {
+    const input = doc.createElement("input");
+    Object.assign(input, { type: "hidden", name, value });
+    form.append(input);
+  };
+  hidden("form", `${origin}/tags/viewindex`);
+  if (lang === "zh") hidden("lang", "zh");
+  box.replaceWith(form);
+  form.append(box);
+  for (const input of box.querySelectorAll<HTMLInputElement>("input.tags-select")) {
+    input.setAttribute("name", "tag");
+    input.removeAttribute("id"); // every box shares one id on PO18
+    if (selected.has(input.value)) input.setAttribute("checked", "");
+  }
+
+  const actions = doc.createElement("div");
+  actions.setAttribute("style", "display:flex;gap:12px;align-items:center;margin:12px 0");
+  const submit = doc.createElement("button");
+  submit.setAttribute("type", "submit");
+  submit.textContent = lang === "vi" ? "Lọc truyện theo tag đã chọn" : "篩選";
+  submit.setAttribute(
+    "style",
+    "padding:8px 20px;border:0;border-radius:999px;background:#10b981;color:#000;font-weight:600;cursor:pointer"
+  );
+  actions.append(submit);
+  if (selected.size > 0) {
+    const clear = doc.createElement("a");
+    clear.textContent = lang === "vi" ? "Bỏ chọn tất cả" : "清除";
+    // A site link like any other: the link pass below routes it through StoryCast.
+    clear.setAttribute("href", `${origin}/tags/viewindex`);
+    actions.append(clear);
+  }
+  form.append(actions);
 }
 
 // Collects every visible piece of Chinese text, converts them in one go, and puts them back.
